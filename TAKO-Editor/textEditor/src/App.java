@@ -174,7 +174,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
 
         matcher = STRING_PTN.matcher(val);
         while (matcher.find()) {
-            val = val.replace(matcher.group(), "<span class=string>" + matcher.group() + "</span>" );
+            val = val.replace(matcher.group(), "<span class=string>" + matcher.group().replaceAll("<span class=(.*?)>", "").replace("</span>", "") + "</span>" );
         }
 
         matcher = CLASS_PTN.matcher(val);
