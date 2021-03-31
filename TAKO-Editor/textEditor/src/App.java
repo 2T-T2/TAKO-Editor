@@ -41,9 +41,9 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     final Pattern  NUMBER_PTN = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+|)");
     final Pattern  CLASS_PTN  = Pattern.compile("[ \\(][A-Z][a-zA-z]++");
     final Pattern  METHOD_PTN = Pattern.compile("[ .][a-z][a-zA-Z]++\\(");
-    final String[] PROC_CONTROL_KEYWORD = {"break","continue","do","else","for","if","return","while","default","case","switch"};
-    final String[] TYPE_KEYWORD         = {"auto","char","const","double","enum","extern","float","goto","inline","int","long","register","restrict","short","signed","sizeof","struct","typedef","union","unsigned","void","volatile"};
-    final String[] COMMON_KEYWORD       = {"class","delete","false","import","operator","private","protected","public","this","throw","true","try","typeof","static"};
+    final String[] PROC_CONTROL_KEYWORD = {"break","continue","do","else","for","if","return","while","default","case","switch","goto"};
+    final String[] TYPE_KEYWORD         = {"char","const","double","enum","float","int","long","restrict","short","void","volatile"};
+    final String[] COMMON_KEYWORD       = {"class","false","import","private","protected","public","this","throw","true","try","static"};
     final String[] JAVA_KEYWORD         = {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new"};
 
     App (String title) {
