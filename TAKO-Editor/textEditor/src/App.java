@@ -165,6 +165,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         for (String key: TYPE_KEYWORD) {
             val = val.replace(key + " ", "<span class=type-key>" + key + "</span> ");
+            val = val.replace(key + "<", "<span class=type-key>" + key + "</span><");
         }
         for (String key: PROC_CONTROL_KEYWORD) {
             val = val.replace(key + " ", "<span class=proc-control-key>" + key + "</span> ");
