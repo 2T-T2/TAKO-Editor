@@ -172,14 +172,14 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             val = val.replace(key + "(", "<span class=proc-control-key>" + key + "</span>(");
         }
 
-        matcher = STRING_PTN.matcher(val);
-        while (matcher.find()) {
-            val = val.replace(matcher.group(), "<span class=string>" + matcher.group().replaceAll("<span class=(.*?)>", "").replace("</span>", "") + "</span>" );
-        }
-
         matcher = CLASS_PTN.matcher(val);
         while (matcher.find()) {
             val = val.replace(matcher.group(), matcher.group().substring(0, 1) + "<span class=class>" + matcher.group().substring(1) + "</span>");
+        }
+        
+        matcher = STRING_PTN.matcher(val);
+        while (matcher.find()) {
+            val = val.replace(matcher.group(), "<span class=string>" + matcher.group().replaceAll("<span class=(.*?)>", "").replace("</span>", "") + "</span>" );
         }
 
         return val;
