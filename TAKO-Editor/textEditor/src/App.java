@@ -26,9 +26,9 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
 
     final Pattern  STRING_PTN = Pattern.compile("&quot;(.*?)&quot;");
     final Pattern  NUMBER_PTN = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+|)");
-    final Pattern  CLASS_PTN  = Pattern.compile(" [A-Z][a-zA-z]++");
-    final String[] PROC_CONTROL_KEYWORD = {"break","continue","do","else","for","if","return","while","default"};
-    final String[] TYPE_KEYWORD         = {"auto","case","char","const","double","enum","extern","float","goto","inline","int","long","register","restrict","short","signed","sizeof","struct","switch","typedef","union","unsigned","void","volatile"};
+    final Pattern  CLASS_PTN  = Pattern.compile("[ \\(\t][A-Z][a-zA-z]++");
+    final String[] PROC_CONTROL_KEYWORD = {"break","continue","do","else","for","if","return","while","default","case","switch"};
+    final String[] TYPE_KEYWORD         = {"auto","char","const","double","enum","extern","float","goto","inline","int","long","register","restrict","short","signed","sizeof","struct","typedef","union","unsigned","void","volatile"};
     final String[] COMMON_KEYWORD       = {"class","delete","false","import","operator","private","protected","public","this","throw","true","try","typeof","static"};
     final String[] JAVA_KEYWORD         = {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new"};
 
@@ -118,6 +118,8 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
 
         for (String key: COMMON_KEYWORD){
             val = val.replace(key + " ", "<span class=common-key>" + key + "</span> ");
+            val = val.replace(key + ".", "<span class=common-key>" + key + "</span>.");
+            val = val.replace("(" + key, "(<span class=common-key>" + key + "</span>");
         }
         for (String key: JAVA_KEYWORD){
             val = val.replace(key + " ", "<span class=java-key>" + key + "</span> ");
@@ -127,6 +129,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         for (String key: PROC_CONTROL_KEYWORD) {
             val = val.replace(key + " ", "<span class=proc-control-key>" + key + "</span> ");
+            val = val.replace(key + "(", "<span class=proc-control-key>" + key + "</span>(");
         }
 
         matcher = STRING_PTN.matcher(val);
@@ -136,9 +139,9 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
 
         matcher = CLASS_PTN.matcher(val);
         for (int i = 0; i < matcher.results().count(); i++){
-            val = val.replaceAll(" [A-Z][a-zA-Z]++", "<span class=class>" + ("$" + i) + "</span>");
+            val = val.replaceAll("[ \\(\t][A-Z][a-zA-Z]++", "<span class=class>" + ("$" + i) + "</span>");
         }
-
+        
         return val;
     }
     // JFrame イベント
