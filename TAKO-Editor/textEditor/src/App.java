@@ -162,6 +162,8 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         for (String key: COMMON_KEYWORD){
             val = val.replace(key + " ", "<span class=common-key>" + key + "</span> ");
             val = val.replace(key + ".", "<span class=common-key>" + key + "</span>.");
+            val = val.replace(key + ")", "<span class=common-key>" + key + "</span>)");
+            val = val.replace(key + ";", "<span class=common-key>" + key + "</span>;");
             val = val.replace("(" + key, "(<span class=common-key>" + key + "</span>");
         }
         for (String key: JAVA_KEYWORD){
