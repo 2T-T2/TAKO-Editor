@@ -1,3 +1,4 @@
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -14,7 +15,11 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -30,10 +35,15 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     JMenuItem redoItem;
     JMenuItem undoItem;
     JMenuItem commentoutItem;
+    JMenuItem newFlieItem;
+    JMenuItem overWriteItem;
     UndoableEdit undo;
-    boolean isCtrl = false;
-    boolean isZ    = false;
-    boolean isY    = false;
+    String openedFile = null;
+    boolean isCtrl  = false;
+    boolean isZ     = false;
+    boolean isY     = false;
+    boolean isS     = false;
+    boolean isSlash = false;
     final Pattern  STRING_PTN = Pattern.compile("&quot;(.*?)&quot;");
     final Pattern  NUMBER_PTN = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+|)");
     final Pattern  CLASS_PTN  = Pattern.compile("[ \\(][A-Z][a-zA-z]++");
@@ -42,8 +52,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     final String[] TYPE_KEYWORD         = {"char","const","double","enum","float","int","long","restrict","short","void","volatile"};
     final String[] COMMON_KEYWORD       = {"class","false","import","private","protected","public","this","throw","true","try","static","catch"};
     final String[] JAVA_KEYWORD         = {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new"};
-    private boolean isSlash;
-    App (String title) {
+    App (String title, String path) {
         setTitle(title);
         setLocationRelativeTo(null);
         setSize(500, 500);
@@ -51,8 +60,14 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         JMenuBar menubar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
+            newFlieItem = new JMenuItem("Save as ...");
+            newFlieItem.addActionListener(this);
+            overWriteItem = new JMenuItem("Save");
+            overWriteItem.addActionListener(this);
             exportItem = new JMenuItem("export to html");
             exportItem.addActionListener(this);
+            fileMenu.add(newFlieItem);
+            fileMenu.add(overWriteItem);
             fileMenu.add(exportItem);
         JMenu editMenu = new JMenu("Edit");
             undoItem = new JMenuItem("undo");
@@ -105,13 +120,135 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         css.addRule(".string{color: orange;}");
         css.addRule(".class{color: green;}");
         css.addRule(".method{color: #008b8b;}");
+        if (path != null){
+            File f = new File(path);
+            if (f.exists()) {
+                if (f.canRead()){
+                    if (f.isFile()){
+                        textarea.setText( readTxtFile(f) );
+                        openedFile =  f.getAbsolutePath();
+                    }else {
+                        showDialog("開こうとしているのはフォルダではありませんか？");
+                    }
+                }else {
+                    showDialog("ファイルが読み込める状況にありませんでした");
+                }
+            }else{
+                if (showYesNoDialog("開こうとしたファイルが存在しませんでした。\nファイルを作成しますか？", "TAKOからの質問") ){
+                    try {
+                        if (f.createNewFile()) {
+                            openedFile = f.getAbsolutePath();
+                        }else {
+                            showDialog("ファイルの作成に失敗しました");
+                        }
+                    } catch (IOException e) {
+                        showDialog("ファイルの作成に失敗しました");
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
     public static void main(String[] args) throws Exception {
-        App frame = new App("TAKO-Editor");
+        App frame;
+        if (args.length == 1){
+            frame = new App("TAKO-Editor", args[0]);
+        }else {
+            frame = new App("TAKO-Editor", null);
+        }
         frame.setVisible(true);
+    }
+    private String readTxtFile(File f){
+        String str = "";
+        try {
+            FileReader reader = new FileReader(f);
+            BufferedReader br = new  BufferedReader(reader);
+            String tmp = "";
+            str = br.readLine();
+            while ((tmp = br.readLine()) != null) {
+                str = str + "\n" + tmp;
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+        return str;
+    }
+    private void save() {
+        if (openedFile == null ) {
+            showDialog("ファイルを新規作成します");
+            saveAs();
+        } else {
+            File f = new File(openedFile);
+            if (f.exists()) {
+                if (f.canWrite()) {
+                    if (f.isFile()) {
+                        try {
+                            BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+                            for (String line: textarea.getText().split("\\n")){
+                                bw.write(line);
+                                bw.newLine();
+                            }
+                            bw.close();
+                            showDialog("ファイルを保存しました");
+                        } catch (IOException e) {
+                            showDialog("上書き処理に失敗しました");
+                            e.printStackTrace();
+                        }
+                    }else {
+                        showDialog("ファイルを新規作成します");
+                        saveAs();
+                    }
+                }else {
+                    showDialog("ファイルが書き込める状況にありませんでした");
+                }
+            }else {
+                showDialog("ファイルを新規作成します");
+                saveAs();
+            }
+        }
+    }
+    private void saveAs() {
+        String path = showSaveAsDialog();
+        if (path != null ){
+            File f = new File(path);
+            if ( !(f.exists()) ) {
+                try {
+                    f.createNewFile();
+                } catch (IOException e) {
+                    showDialog("ファイルの作成に失敗しました");
+                    e.printStackTrace();
+                }
+                openedFile = path;
+                save();
+            }
+        }else {
+            showDialog("ファイルを選択をキャンセルしたか、エラーが発生しました");
+        }
     }
     private void showDialog(String mes) {
         JOptionPane.showMessageDialog(null, mes);
+    }
+    private boolean showYesNoDialog(String mes, String title) {
+        int opinion = JOptionPane.showConfirmDialog(null, mes, title, JOptionPane.YES_NO_OPTION);
+        if (opinion == JOptionPane.YES_OPTION){
+            return true;
+        }else {
+            return false;
+        }
+    }
+    private String showSaveAsDialog(){
+        FileDialog fDialog = new FileDialog(this);
+        do {
+            fDialog.setMode(FileDialog.SAVE);
+            fDialog.setVisible(true);
+            if (fDialog.getDirectory() == null){
+                return null;
+            }
+        } while (fDialog.getFile() == null);
+        return fDialog.getDirectory() + fDialog.getFile();
     }
     private void commentOut() {
         int cpos = textarea.getCaretPosition();
@@ -128,7 +265,6 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
                 break;
             }
         }
-        System.out.println(sb.toString());
         textarea.setText(textarea.getText().replace(lines[lineNum-1], sb.insert(cnt, "// ").toString()));
         textarea.setCaretPosition(cpos);
     }
@@ -209,12 +345,17 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             isY = true;
         }else if (e.getKeyCode() == KeyEvent.VK_SLASH ) {
             isSlash = true;
+        }else if (e.getKeyCode() == KeyEvent.VK_S ) {
+            isS = true;
         }
         if (isCtrl && isZ && undo.canUndo()) {
             unDo();
         }
         if (isCtrl && isY && undo.canRedo()) {
             reDo();
+        }
+        if (isCtrl && isS ) {
+            save();
         }
         if (isCtrl && isSlash ) {
             commentOut();
@@ -230,6 +371,8 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             isY = false;
         }else if (e.getKeyCode() == KeyEvent.VK_SLASH ) {
             isSlash = false;
+        }else if (e.getKeyCode() == KeyEvent.VK_S ) {
+            isS = false;
         }
     }
     @Override
@@ -275,6 +418,10 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             unDo();
         }else if (e.getActionCommand().equals( commentoutItem.getText() )){
             commentOut();
+        }else if (e.getActionCommand().equals( newFlieItem.getText() )){
+            saveAs();
+        }else if (e.getActionCommand().equals( overWriteItem.getText() )){
+            save();
         }
     }
 }
