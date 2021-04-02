@@ -1,4 +1,3 @@
-
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -37,6 +36,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     JMenuItem commentoutItem;
     JMenuItem newFlieItem;
     JMenuItem overWriteItem;
+    JMenuItem openItem;
     UndoableEdit undo;
     String openedFile = null;
     boolean isCtrl  = false;
@@ -60,12 +60,15 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         JMenuBar menubar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
+            openItem = new JMenuItem("Open");
+            openItem.addActionListener(this);
             newFlieItem = new JMenuItem("Save as ...");
             newFlieItem.addActionListener(this);
             overWriteItem = new JMenuItem("Save");
             overWriteItem.addActionListener(this);
             exportItem = new JMenuItem("export to html");
             exportItem.addActionListener(this);
+            fileMenu.add(openItem);
             fileMenu.add(newFlieItem);
             fileMenu.add(overWriteItem);
             fileMenu.add(exportItem);
@@ -109,17 +112,19 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         setJMenuBar(menubar);
         add(sc, BorderLayout.CENTER);
         pack();
+        
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet css = kit.getStyleSheet();
-        css.addRule("pre{margin-top: 0;}");
-        css.addRule(".decimal{color: teal}");
-        css.addRule(".type-key{color: green;}");
-        css.addRule(".common-key{color: blue;}");
-        css.addRule(".java-key{color: purple;}");
-        css.addRule(".proc-control-key{color: purple;}");
-        css.addRule(".string{color: orange;}");
-        css.addRule(".class{color: green;}");
-        css.addRule(".method{color: #008b8b;}");
+        css.addRule("pre{margin-top: 0;}");                 
+        css.addRule(".decimal{color: teal}");               
+        css.addRule(".type-key{color: green;}");            
+        css.addRule(".common-key{color: blue;}");           
+        css.addRule(".java-key{color: purple;}");           
+        css.addRule(".proc-control-key{color: purple;}");   
+        css.addRule(".string{color: orange;}");             
+        css.addRule(".class{color: green;}");               
+        css.addRule(".method{color: #008b8b;}");            
+        
         if (path != null){
             File f = new File(path);
             if (f.exists()) {
@@ -224,9 +229,28 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
                 openedFile = path;
                 save();
             }
-        }else {
-            showDialog("ファイルを選択をキャンセルしたか、エラーが発生しました");
         }
+    }
+    private String fileOpen() {
+        String path = showOpenDialog();
+        if (path != null ){
+            File f = new File(path);
+            if (f.exists()) {
+                if (f.canRead()){
+                    if (f.isFile()){
+                        openedFile =  f.getAbsolutePath();
+                        return readTxtFile(f);
+                    }else {
+                        showDialog("開こうとしているのはフォルダではありませんか？");
+                    }
+                }else {
+                    showDialog("ファイルが読み込める状況にありませんでした");
+                }
+            }else {
+                showDialog("開こうとしたファイルが存在しませんでした。");
+            }
+        }
+        return null;
     }
     private void showDialog(String mes) {
         JOptionPane.showMessageDialog(null, mes);
@@ -245,9 +269,22 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             fDialog.setMode(FileDialog.SAVE);
             fDialog.setVisible(true);
             if (fDialog.getDirectory() == null){
+                showDialog("ファイルを選択をキャンセルしたか、エラーが発生しました");
                 return null;
             }
         } while (fDialog.getFile() == null);
+        return fDialog.getDirectory() + fDialog.getFile();
+    }
+    private String showOpenDialog() {
+        FileDialog fDialog = new FileDialog(this);
+        do {
+            fDialog.setMode(FileDialog.LOAD);
+            fDialog.setVisible(true);
+            if (fDialog.getDirectory() == null){
+                showDialog("ファイル保存をキャンセルしました。");
+                return null;
+            }
+        }while (fDialog.getFile() == null);
         return fDialog.getDirectory() + fDialog.getFile();
     }
     private void commentOut() {
@@ -319,24 +356,31 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         return val;
     }
+    
     @Override
     public void componentResized(ComponentEvent e) {
+        
         sc.setPreferredSize(new Dimension(getWidth(), getHeight()));
     }
     @Override
     public void componentMoved(ComponentEvent e) {
+        
     }
     @Override
     public void componentShown(ComponentEvent e) {
+        
     }
     @Override
     public void componentHidden(ComponentEvent e) {
+        
     }
     @Override
     public void keyTyped(KeyEvent e) {
+        
     }
     @Override
     public void keyPressed(KeyEvent e) {
+        
         if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
             isCtrl = true;
         }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
@@ -363,6 +407,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     }
     @Override
     public void keyReleased(KeyEvent e) {
+        
         if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
             isCtrl = false;
         }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
@@ -375,8 +420,10 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             isS = false;
         }
     }
+    
     @Override
     public void insertUpdate(DocumentEvent e) {
+        
         String val = highLight(textarea.getText());
         label.setText("<html><pre>" + val + "</pre></html>");
         panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
@@ -385,29 +432,37 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     }
     @Override
     public void removeUpdate(DocumentEvent e) {
+        
         String val = highLight(textarea.getText());
         label.setText("<html><pre>" + val + "</pre></html>");
         panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
     }
     @Override
     public void changedUpdate(DocumentEvent e) {
+        
     }
     @Override
     public void undoableEditHappened(UndoableEditEvent e) {
+        
         undo = e.getEdit();
         undoItem.setEnabled(undo.canUndo());
         redoItem.setEnabled(undo.canRedo());
     }
+    
     @Override
     public void actionPerformed(ActionEvent e) {
+        
         if (e.getActionCommand().equals( exportItem.getText() )){
             try {
-                File f = new File("output.html");
-                FileWriter fw;
-                fw = new FileWriter(f);
-                fw.write("<head><style>pre{margin-top: 0;}.decimal{color: teal}.type-key{color: green;}.common-key{color: blue;}.java-key{color: purple;}.proc-control-key{color: purple;}.string{color: orange;}.class{color: green;}</style></head>" + label.getText());
-                fw.close();
-                showDialog("htmlファイルを保存しました");
+                String path = showSaveAsDialog();
+                if (path != null){
+                    File f = new File( path );
+                    FileWriter fw;
+                    fw = new FileWriter(f);
+                    fw.write("<head><style>pre{margin-top: 0;}.decimal{color: teal}.type-key{color: green;}.common-key{color: blue;}.java-key{color: purple;}.proc-control-key{color: purple;}.string{color: orange;}.class{color: green;}</style></head>" + label.getText());
+                    fw.close();
+                    showDialog("htmlファイルを保存しました");
+                }
             } catch (IOException e1) {
                 e1.printStackTrace();
                 showDialog("ファイル保存時にエラーが発生しました");
@@ -422,6 +477,11 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             saveAs();
         }else if (e.getActionCommand().equals( overWriteItem.getText() )){
             save();
+        }else if (e.getActionCommand().equals( openItem.getText() )) {
+            String txt;
+            if ( ( txt = fileOpen()) != null ){
+                textarea.setText(txt);
+            }
         }
     }
 }
