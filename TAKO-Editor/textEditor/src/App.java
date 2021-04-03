@@ -21,6 +21,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class App extends JFrame implements ComponentListener, DocumentListener, ActionListener, UndoableEditListener, KeyListener {
@@ -44,6 +46,8 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     boolean isY     = false;
     boolean isS     = false;
     boolean isSlash = false;
+    Map<Character, Character> pairChar = new HashMap<Character, Character>();
+    final int indentSize = 2;
     final Pattern  STRING_PTN = Pattern.compile("&quot;(.*?)&quot;");
     final Pattern  NUMBER_PTN = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+|)");
     final Pattern  CLASS_PTN  = Pattern.compile("[ \\(][A-Z][a-zA-z]++");
@@ -112,19 +116,18 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         setJMenuBar(menubar);
         add(sc, BorderLayout.CENTER);
         pack();
-        
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet css = kit.getStyleSheet();
-        css.addRule("pre{margin-top: 0;}");                 
-        css.addRule(".decimal{color: teal}");               
-        css.addRule(".type-key{color: green;}");            
-        css.addRule(".common-key{color: blue;}");           
-        css.addRule(".java-key{color: purple;}");           
-        css.addRule(".proc-control-key{color: purple;}");   
-        css.addRule(".string{color: orange;}");             
-        css.addRule(".class{color: green;}");               
-        css.addRule(".method{color: #008b8b;}");            
-        
+        css.addRule("pre{margin-top: 0;}");
+        css.addRule(".decimal{color: teal}");
+        css.addRule(".type-key{color: green;}");
+        css.addRule(".common-key{color: blue;}");
+        css.addRule(".java-key{color: purple;}");
+        css.addRule(".proc-control-key{color: purple;}");
+        css.addRule(".string{color: orange;}");
+        css.addRule(".class{color: green;}");
+        css.addRule(".method{color: #008b8b;}");
+        setPairCharRule();
         if (path != null){
             File f = new File(path);
             if (f.exists()) {
@@ -287,6 +290,25 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }while (fDialog.getFile() == null);
         return fDialog.getDirectory() + fDialog.getFile();
     }
+    private int countCurlineBlank(){
+        int cpos = textarea.getCaretPosition();
+        String befor = textarea.getText().substring(0, cpos);
+        String[] lines = befor.split("\\n");
+        int lineNum = lines.length;
+        lines = textarea.getText().split("\\n");
+        int cnt = 0;
+        if (lines.length != 0){
+            String line = lines[lineNum-1];
+            for (char c: line.toCharArray()){
+                if (c == ' '){
+                    cnt++;
+                }else{
+                    break;
+                }
+            }
+        }
+        return cnt;
+    }
     private void commentOut() {
         int cpos = textarea.getCaretPosition();
         String befor = textarea.getText().substring(0, cpos);
@@ -314,6 +336,13 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         undo.redo();
         undoItem.setEnabled(undo.canUndo());
         redoItem.setEnabled(undo.canRedo());
+    }
+    public void setPairCharRule() {
+        pairChar.put('{', '}');
+        pairChar.put('"', '"');
+        pairChar.put('(', ')');
+        pairChar.put('[', ']');
+        pairChar.put('\'', '\'');
     }
     private String sanitaizeEnc (String str) {
         return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("\n", "<br>");
@@ -356,31 +385,24 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         return val;
     }
-    
     @Override
     public void componentResized(ComponentEvent e) {
-        
         sc.setPreferredSize(new Dimension(getWidth(), getHeight()));
     }
     @Override
     public void componentMoved(ComponentEvent e) {
-        
     }
     @Override
     public void componentShown(ComponentEvent e) {
-        
     }
     @Override
     public void componentHidden(ComponentEvent e) {
-        
     }
     @Override
     public void keyTyped(KeyEvent e) {
-        
     }
     @Override
     public void keyPressed(KeyEvent e) {
-        
         if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
             isCtrl = true;
         }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
@@ -403,11 +425,14 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         if (isCtrl && isSlash ) {
             commentOut();
+        }else if (pairChar.containsKey(e.getKeyChar())) {
+            int cpos = textarea.getCaretPosition();
+            textarea.setText(textarea.getText().substring(0,cpos) + pairChar.get(e.getKeyChar()) + textarea.getText().substring(cpos));
+            textarea.setCaretPosition(cpos);
         }
     }
     @Override
     public void keyReleased(KeyEvent e) {
-        
         if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
             isCtrl = false;
         }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
@@ -418,12 +443,24 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             isSlash = false;
         }else if (e.getKeyCode() == KeyEvent.VK_S ) {
             isS = false;
+        }else if (e.getKeyCode() == KeyEvent.VK_ENTER ) {
+            int cpos = textarea.getCaretPosition();
+            int indent = countCurlineBlank();
+            String indentStr = "";
+            if (indent != 0) {
+                if(textarea.getText().substring(cpos-2,cpos-1).equals("{")) {
+                    indent = indent + indentSize;
+                }
+                for (int i = 0; i < indent; i++){
+                    indentStr = indentStr + " ";
+                }
+                textarea.setText(textarea.getText().substring(0,cpos) + indentStr + textarea.getText().substring(cpos));
+                textarea.setCaretPosition(cpos+indent);
+            }
         }
     }
-    
     @Override
     public void insertUpdate(DocumentEvent e) {
-        
         String val = highLight(textarea.getText());
         label.setText("<html><pre>" + val + "</pre></html>");
         panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
@@ -432,26 +469,21 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     }
     @Override
     public void removeUpdate(DocumentEvent e) {
-        
         String val = highLight(textarea.getText());
         label.setText("<html><pre>" + val + "</pre></html>");
         panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
     }
     @Override
     public void changedUpdate(DocumentEvent e) {
-        
     }
     @Override
     public void undoableEditHappened(UndoableEditEvent e) {
-        
         undo = e.getEdit();
         undoItem.setEnabled(undo.canUndo());
         redoItem.setEnabled(undo.canRedo());
     }
-    
     @Override
     public void actionPerformed(ActionEvent e) {
-        
         if (e.getActionCommand().equals( exportItem.getText() )){
             try {
                 String path = showSaveAsDialog();
