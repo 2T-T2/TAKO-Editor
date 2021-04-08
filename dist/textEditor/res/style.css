@@ -1,0 +1,37 @@
+pre{
+    /* エディタ全体 */
+    margin-top: 0;
+    background-color: white;
+}
+.decimal{
+    /* 数字 */
+    color: teal;
+}
+.type-key{
+    /* {"char","const","double","enum","float","int","long","restrict","short","void","volatile"}; */
+    color: green;
+}
+.common-key{
+    /* {"class","false","import","private","protected","public","this","throw","true","try","static","catch"}; */
+    color: blue;
+}
+.java-key{
+    /* {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new", "@Override"}; */
+    color: purple;
+}
+.proc-control-key{
+    /* {"break","continue","do","else","for","if","return","while","default","case","switch","goto"}; */
+    color: purple;
+}
+.string{
+    /* 文字列(ダブルコーテーションで囲ったもの) */
+    color: orange;
+}
+.class{
+    /* 大文字から始まるアルファベット(クラス名) */
+    color: green;
+}
+.method{
+    /* 小文字から始まるアルファベット(メソッド名) */
+    color: #008b8b;
+}
