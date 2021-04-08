@@ -129,7 +129,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         setIconImage(icon.getImage());
         setJMenuBar(menubar);
         add(sc, BorderLayout.CENTER);
-		add(statusBar, BorderLayout.SOUTH);
+	add(statusBar, BorderLayout.SOUTH);
         pack();
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet css = kit.getStyleSheet();
@@ -137,11 +137,36 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         if (cssFile.exists()){
             cssRule = readTxtFile(cssFile);
             css.addRule(cssRule);
-            Enumeration<?> i = css.getStyle("pre").getAttributeNames();
-            while (i.hasMoreElements()) {
-                Object k = i.nextElement();
-                if(k.toString().equals("background-color")){
-                    panel.setBackground(cssStandert.get( css.getStyle("pre").getAttribute(k).toString() ));
+            if (css.getStyle("pre") != null) {
+                Enumeration<?> preCss = css.getStyle("pre").getAttributeNames();
+                while (preCss.hasMoreElements()) {
+                    Object k = preCss.nextElement();
+                    if(k.toString().equals("background-color")){
+                        if (cssStandert.containsKey( css.getStyle("pre").getAttribute(k).toString() )){
+                            panel.setBackground(cssStandert.get( css.getStyle("pre").getAttribute(k).toString() ));
+                        }else {
+                            int r = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(0, 2), 16);
+                            int g = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(2, 4), 16);
+                            int b = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(4, 6), 16);
+                            panel.setBackground(new Color(r, g, b));
+                        }
+                    }
+                }
+            }
+            if (css.getStyle(".caret") != null) {
+                Enumeration<?> caretCss = css.getStyle(".caret").getAttributeNames();
+                while (caretCss.hasMoreElements()) {
+                    Object k = caretCss.nextElement();
+                    if(k.toString().equals("color")){
+                        if (cssStandert.containsKey( css.getStyle(".caret").getAttribute(k).toString() )){
+                            textarea.setCaretColor(cssStandert.get( css.getStyle(".caret").getAttribute(k).toString()));
+                        }else {
+                            int r = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(0, 2), 16);
+                            int g = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(2, 4), 16);
+                            int b = Integer.parseInt(css.getStyle("pre").getAttribute(k).toString().replace("#", "").substring(4, 6), 16);
+                            textarea.setCaretColor(new Color(r, g, b));
+                        }
+                    }
                 }
             }
         }else{
