@@ -1,5 +1,6 @@
 # TAKO-Editor
 javaのハイライト表示に対応したテキストエディタ
+textEditor/res/style/style.cssを編集することで、ハイライトを自分好みに設定可能。
 
 javaコマンドが使用可能であればrun.batから実行可能。<br>
 <br>
