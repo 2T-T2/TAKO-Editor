@@ -134,7 +134,6 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet css = kit.getStyleSheet();
         File cssFile = new File("textEditor/res/style/style.css");
-        System.out.println(cssFile.getAbsolutePath());
         if (cssFile.exists()){
             cssRule = readTxtFile(cssFile);
             css.addRule(cssRule);
