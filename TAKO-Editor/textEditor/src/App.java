@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
@@ -12,6 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
@@ -21,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -29,6 +32,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     JPanel panel;
     JTextArea textarea;
     JLabel label;
+    JLabel statusBar;
     JScrollPane sc;
     Document doc;
     Matcher matcher;
@@ -40,35 +44,36 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     JMenuItem overWriteItem;
     JMenuItem openItem;
     UndoableEdit undo;
+    String cssRule;
     String openedFile = null;
-    boolean isCtrl  = false;
-    boolean isZ     = false;
-    boolean isY     = false;
-    boolean isS     = false;
-    boolean isSlash = false;
     Map<Character, Character> pairChar = new HashMap<Character, Character>();
+    Map<String, Color> cssStandert     = new HashMap<String, Color>();
     final int indentSize = 2;
     final Pattern  STRING_PTN = Pattern.compile("&quot;(.*?)&quot;");
-    final Pattern  NUMBER_PTN = Pattern.compile("-?(0|[1-9]\\d*)(\\.\\d+|)");
+    final Pattern  NUMBER_PTN = Pattern.compile("[^a-zA-Z\\^!\"#\\$%'\\(\\)\\*\\+\\-,\\/:;<=>?@\\[\\]\\_\\{\\}\\|~\\\\][0-9]++");
     final Pattern  CLASS_PTN  = Pattern.compile("[ \\(][A-Z][a-zA-z]++");
-    final Pattern  METHOD_PTN = Pattern.compile("[ .][a-z][a-zA-Z]++\\(");
+    final Pattern  METHOD_PTN = Pattern.compile("[ .][a-z][a-zA-Z]++(\\(| \\()");
     final String[] PROC_CONTROL_KEYWORD = {"break","continue","do","else","for","if","return","while","default","case","switch","goto"};
     final String[] TYPE_KEYWORD         = {"char","const","double","enum","float","int","long","restrict","short","void","volatile"};
     final String[] COMMON_KEYWORD       = {"class","false","import","private","protected","public","this","throw","true","try","static","catch"};
-    final String[] JAVA_KEYWORD         = {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new"};
+    final String[] JAVA_KEYWORD         = {"abstract","assert","boolean","byte","extends","finally","final","implements","import","instanceof","interface","null","native", "package","strictfp","super", "synchronized","throws","transient","new", "@Override"};
     App (String title, String path) {
-        setTitle(title);
-        setLocationRelativeTo(null);
+        super(title);
+        setLocation(50, 50);
         setSize(500, 500);
         addComponentListener(this);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setPairCharRule();
+        setCssStandert();
         JMenuBar menubar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
+        fileMenu.setMnemonic('f');
             openItem = new JMenuItem("Open");
             openItem.addActionListener(this);
             newFlieItem = new JMenuItem("Save as ...");
             newFlieItem.addActionListener(this);
             overWriteItem = new JMenuItem("Save");
+            overWriteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
             overWriteItem.addActionListener(this);
             exportItem = new JMenuItem("export to html");
             exportItem.addActionListener(this);
@@ -77,11 +82,15 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
             fileMenu.add(overWriteItem);
             fileMenu.add(exportItem);
         JMenu editMenu = new JMenu("Edit");
+        editMenu.setMnemonic('e');
             undoItem = new JMenuItem("undo");
+            undoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK));
             undoItem.addActionListener(this);
             redoItem = new JMenuItem("redo");
+            redoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK));
             redoItem.addActionListener(this);
             commentoutItem = new JMenuItem("comment out current line");
+            commentoutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK));
             commentoutItem.addActionListener(this);
             editMenu.add(undoItem);
             editMenu.add(redoItem);
@@ -98,7 +107,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         textarea = new JTextArea();
         textarea.setFont(font);
         textarea.setTabSize(8);
-        textarea.setForeground(new Color(0, 0 ,0 , 100));
+        textarea.setForeground(new Color(0, 0 ,0 , 0));
         textarea.setOpaque(false);
         textarea.addKeyListener(this);
         textarea.setBounds(0, 0, getWidth(), getHeight());
@@ -110,24 +119,43 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         label.setHorizontalAlignment(JLabel.LEFT);
         label.setVerticalAlignment(JLabel.TOP);
         label.setBounds(0, 0, getWidth(), getHeight());
-        panel.add(label);
+        label.setOpaque(true);
+        label.setBorder(new EmptyBorder(0, 2, 0, 0));
+        statusBar = new JLabel("");
+        statusBar.setHorizontalAlignment(JLabel.RIGHT);
+        setStatusBar();
         panel.add(textarea);
+        panel.add(label);
         setIconImage(icon.getImage());
         setJMenuBar(menubar);
         add(sc, BorderLayout.CENTER);
+		add(statusBar, BorderLayout.SOUTH);
         pack();
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet css = kit.getStyleSheet();
-        css.addRule("pre{margin-top: 0;}");
-        css.addRule(".decimal{color: teal}");
-        css.addRule(".type-key{color: green;}");
-        css.addRule(".common-key{color: blue;}");
-        css.addRule(".java-key{color: purple;}");
-        css.addRule(".proc-control-key{color: purple;}");
-        css.addRule(".string{color: orange;}");
-        css.addRule(".class{color: green;}");
-        css.addRule(".method{color: #008b8b;}");
-        setPairCharRule();
+        File cssFile = new File("textEditor/res/style/style.css");
+        System.out.println(cssFile.getAbsolutePath());
+        if (cssFile.exists()){
+            cssRule = readTxtFile(cssFile);
+            css.addRule(cssRule);
+            Enumeration<?> i = css.getStyle("pre").getAttributeNames();
+            while (i.hasMoreElements()) {
+                Object k = i.nextElement();
+                if(k.toString().equals("background-color")){
+                    panel.setBackground(cssStandert.get( css.getStyle("pre").getAttribute(k).toString() ));
+                }
+            }
+        }else{
+            css.addRule("pre{margin-top: 0;}");
+            css.addRule(".decimal{color: teal}");
+            css.addRule(".type-key{color: green;}");
+            css.addRule(".common-key{color: blue;}");
+            css.addRule(".java-key{color: purple;}");
+            css.addRule(".proc-control-key{color: purple;}");
+            css.addRule(".string{color: orange;}");
+            css.addRule(".class{color: green;}");
+            css.addRule(".method{color: #008b8b;}");
+        }
         if (path != null){
             File f = new File(path);
             if (f.exists()) {
@@ -200,7 +228,7 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
                                 bw.newLine();
                             }
                             bw.close();
-                            showDialog("ファイルを保存しました");
+                            setStatusBar("ファイルを保存しました");
                         } catch (IOException e) {
                             showDialog("上書き処理に失敗しました");
                             e.printStackTrace();
@@ -309,6 +337,15 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         }
         return cnt;
     }
+    private int getCurRow() {
+        if (textarea.getText().equals("")){return 0;}
+        return textarea.getText().substring(0, textarea.getCaretPosition()).split("\\n").length;
+    }
+    private int getCurColumn() {
+        if (textarea.getText().replace("\n", "").equals("")){return textarea.getText().substring(0, textarea.getCaretPosition()).length();}
+        String val[] = textarea.getText().substring(0, textarea.getCaretPosition()).split("\\n");
+        return val[val.length-1].length();
+    }
     private void commentOut() {
         int cpos = textarea.getCaretPosition();
         String befor = textarea.getText().substring(0, cpos);
@@ -327,6 +364,12 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         textarea.setText(textarea.getText().replace(lines[lineNum-1], sb.insert(cnt, "// ").toString()));
         textarea.setCaretPosition(cpos);
     }
+    private void setStatusBar() {
+        statusBar.setText("行"+getCurRow()+"，列"+getCurColumn());
+    }
+    private void setStatusBar(String mes) {
+        statusBar.setText(mes);
+    }
     private void unDo () {
         undo.undo();
         undoItem.setEnabled(undo.canUndo());
@@ -337,12 +380,30 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         undoItem.setEnabled(undo.canUndo());
         redoItem.setEnabled(undo.canRedo());
     }
-    public void setPairCharRule() {
+    private void setPairCharRule() {
         pairChar.put('{', '}');
         pairChar.put('"', '"');
         pairChar.put('(', ')');
         pairChar.put('[', ']');
         pairChar.put('\'', '\'');
+    }
+    private void setCssStandert() {
+        cssStandert.put("black"     , new Color( 0 ,  0 ,  0 ));
+        cssStandert.put("silver"    , new Color(192, 192, 192));
+        cssStandert.put("gray"      , new Color(128, 128, 128));
+        cssStandert.put("white"     , new Color(255, 255, 255));
+        cssStandert.put("maroon"    , new Color(128,  0 ,  0 ));
+        cssStandert.put("red"       , new Color(255,  0 ,  0 ));
+        cssStandert.put("purple"    , new Color(128,  0 , 128));
+        cssStandert.put("fuchsia"   , new Color(255,  0 , 255));
+        cssStandert.put("green"     , new Color( 0 , 128,  0 ));
+        cssStandert.put("lime"      , new Color( 0 , 255,  0 ));
+        cssStandert.put("olive"     , new Color(128, 128,  0 ));
+        cssStandert.put("yellow"    , new Color(255, 255,  0 ));
+        cssStandert.put("navy"      , new Color( 0 ,  0 , 128));
+        cssStandert.put("blue"      , new Color( 0 ,  0 , 255));
+        cssStandert.put("teal"      , new Color( 0 , 128, 128));
+        cssStandert.put("aqua"      , new Color( 0 , 255, 255));
     }
     private String sanitaizeEnc (String str) {
         return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("\n", "<br>");
@@ -390,42 +451,17 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         sc.setPreferredSize(new Dimension(getWidth(), getHeight()));
     }
     @Override
-    public void componentMoved(ComponentEvent e) {
-    }
+    public void componentMoved(ComponentEvent e) {}
     @Override
-    public void componentShown(ComponentEvent e) {
-    }
+    public void componentShown(ComponentEvent e) {}
     @Override
-    public void componentHidden(ComponentEvent e) {
-    }
+    public void componentHidden(ComponentEvent e) {}
     @Override
-    public void keyTyped(KeyEvent e) {
-    }
+    public void keyTyped(KeyEvent e) {}
     @Override
     public void keyPressed(KeyEvent e) {
-        if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
-            isCtrl = true;
-        }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
-            isZ = true;
-        }else if (e.getKeyCode() == KeyEvent.VK_Y ) {
-            isY = true;
-        }else if (e.getKeyCode() == KeyEvent.VK_SLASH ) {
-            isSlash = true;
-        }else if (e.getKeyCode() == KeyEvent.VK_S ) {
-            isS = true;
-        }
-        if (isCtrl && isZ && undo.canUndo()) {
-            unDo();
-        }
-        if (isCtrl && isY && undo.canRedo()) {
-            reDo();
-        }
-        if (isCtrl && isS ) {
-            save();
-        }
-        if (isCtrl && isSlash ) {
-            commentOut();
-        }else if (pairChar.containsKey(e.getKeyChar())) {
+        setStatusBar();
+        if (pairChar.containsKey(e.getKeyChar())) {
             int cpos = textarea.getCaretPosition();
             textarea.setText(textarea.getText().substring(0,cpos) + pairChar.get(e.getKeyChar()) + textarea.getText().substring(cpos));
             textarea.setCaretPosition(cpos);
@@ -433,30 +469,28 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
     }
     @Override
     public void keyReleased(KeyEvent e) {
-        if ( e.getKeyCode() == KeyEvent.VK_CONTROL ) {
-            isCtrl = false;
-        }else if ( e.getKeyCode() == KeyEvent.VK_Z ){
-            isZ = false;
-        }else if (e.getKeyCode() == KeyEvent.VK_Y ) {
-            isY = false;
-        }else if (e.getKeyCode() == KeyEvent.VK_SLASH ) {
-            isSlash = false;
-        }else if (e.getKeyCode() == KeyEvent.VK_S ) {
-            isS = false;
-        }else if (e.getKeyCode() == KeyEvent.VK_ENTER ) {
+        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             int cpos = textarea.getCaretPosition();
             int indent = countCurlineBlank();
             String indentStr = "";
             if (indent != 0) {
                 if(textarea.getText().substring(cpos-2,cpos-1).equals("{")) {
                     indent = indent + indentSize;
-                }
-                for (int i = 0; i < indent; i++){
-                    indentStr = indentStr + " ";
+                    for (int i = 0; i < indent; i++){
+                        indentStr = indentStr + " ";
+                    }
+                    indentStr = indentStr + "\n" + indentStr.substring(2);
+                }else {
+                    for (int i = 0; i < indent; i++){
+                        indentStr = indentStr + " ";
+                    }
                 }
                 textarea.setText(textarea.getText().substring(0,cpos) + indentStr + textarea.getText().substring(cpos));
                 textarea.setCaretPosition(cpos+indent);
             }
+            panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
+            label.setSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
+            textarea.setSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
         }
     }
     @Override
@@ -472,10 +506,11 @@ public class App extends JFrame implements ComponentListener, DocumentListener, 
         String val = highLight(textarea.getText());
         label.setText("<html><pre>" + val + "</pre></html>");
         panel.setPreferredSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
+        label.setSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
+        textarea.setSize(new Dimension(textarea.getPreferredSize().width, textarea.getPreferredSize().height));
     }
     @Override
-    public void changedUpdate(DocumentEvent e) {
-    }
+    public void changedUpdate(DocumentEvent e) {}
     @Override
     public void undoableEditHappened(UndoableEditEvent e) {
         undo = e.getEdit();
